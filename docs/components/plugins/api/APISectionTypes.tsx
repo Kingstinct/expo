@@ -1,70 +1,96 @@
-import { css } from '@emotion/core';
-import { theme } from '@expo/styleguide';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
 import { InlineCode } from '~/components/base/code';
-import { UL } from '~/components/base/list';
-import { B } from '~/components/base/paragraph';
+import { UL, LI } from '~/components/base/list';
+import { B, P } from '~/components/base/paragraph';
 import { H2, H3Code, H4 } from '~/components/plugins/Headings';
 import {
+  PropData,
+  TypeDeclarationContentData,
+  TypeDefinitionData,
   TypeGeneralData,
-  TypePropertyData,
   TypeSignaturesData,
-  TypeValueData,
 } from '~/components/plugins/api/APIDataTypes';
 import {
-  inlineRenderers,
-  renderers,
+  mdInlineRenderers,
+  mdRenderers,
   resolveTypeName,
+  renderFlags,
   renderParam,
   CommentTextBlock,
+  parseCommentContent,
+  renderTypeOrSignatureType,
+  getCommentOrSignatureComment,
 } from '~/components/plugins/api/APISectionUtils';
 
 export type APISectionTypesProps = {
   data: TypeGeneralData[];
 };
 
-const STYLES_OPTIONAL = css`
-  color: ${theme.text.secondary};
-  font-size: 90%;
-  padding-top: 22px;
-`;
-
-const defineLiteralType = (types: TypeValueData[]): string | undefined => {
-  const uniqueTypes = Array.from(new Set(types.map((t: TypeValueData) => typeof t.value)));
-  if (uniqueTypes.length === 1) {
-    return '`' + uniqueTypes[0] + '` - ';
+const defineLiteralType = (types: TypeDefinitionData[]): JSX.Element | null => {
+  const uniqueTypes = Array.from(
+    new Set(types.map((t: TypeDefinitionData) => t.value && typeof t.value))
+  );
+  if (uniqueTypes.length === 1 && uniqueTypes.filter(Boolean).length === 1) {
+    return (
+      <>
+        <InlineCode>{uniqueTypes[0]}</InlineCode>
+        {' - '}
+      </>
+    );
   }
-  return undefined;
+  return null;
 };
 
-const decorateValue = (type: TypeValueData): string =>
-  typeof type.value === 'string' ? "`'" + type.value + "'`" : `'` + type.value + '`';
-
-const renderTypePropertyRow = (typeProperty: TypePropertyData): JSX.Element => (
-  <tr key={typeProperty.name}>
-    <td>
-      <B>{typeProperty.name}</B>
-      {typeProperty.flags?.isOptional ? (
-        <>
-          <br />
-          <span css={STYLES_OPTIONAL}>(optional)</span>
-        </>
-      ) : null}
-    </td>
-    <td>
-      <InlineCode>{resolveTypeName(typeProperty.type)}</InlineCode>
-    </td>
-    <td>
-      {typeProperty?.comment?.shortText ? (
-        <ReactMarkdown renderers={inlineRenderers}>{typeProperty.comment.shortText}</ReactMarkdown>
-      ) : (
-        '-'
-      )}
-    </td>
-  </tr>
+const renderTypeDeclarationTable = ({ children }: TypeDeclarationContentData): JSX.Element => (
+  <table key={`type-declaration-table-${children?.map(child => child.name).join('-')}`}>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>{children?.map(renderTypePropertyRow)}</tbody>
+  </table>
 );
+
+const renderTypePropertyRow = ({
+  name,
+  flags,
+  type,
+  comment,
+  defaultValue,
+  signatures,
+}: PropData): JSX.Element => {
+  const initValue = defaultValue || comment?.tags?.filter(tag => tag.tag === 'default')[0]?.text;
+  const commentData = getCommentOrSignatureComment(comment, signatures);
+  return (
+    <tr key={name}>
+      <td>
+        <B>{name}</B>
+        {renderFlags(flags)}
+      </td>
+      <td>{renderTypeOrSignatureType(type, signatures)}</td>
+      <td>
+        {commentData ? (
+          <CommentTextBlock comment={commentData} renderers={mdInlineRenderers} />
+        ) : (
+          '-'
+        )}
+        {initValue ? (
+          <>
+            <br />
+            <ReactMarkdown renderers={mdInlineRenderers}>{`__Default:__ ${parseCommentContent(
+              initValue
+            )}`}</ReactMarkdown>
+          </>
+        ) : null}
+      </td>
+    </tr>
+  );
+};
 
 const renderType = ({ name, comment, type }: TypeGeneralData): JSX.Element | undefined => {
   if (type.declaration) {
@@ -77,19 +103,8 @@ const renderType = ({ name, comment, type }: TypeGeneralData): JSX.Element | und
             {type.declaration.signatures ? '()' : ''}
           </InlineCode>
         </H3Code>
-        <CommentTextBlock comment={comment} renderers={renderers} />
-        {type.declaration.children ? (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-            <tbody>{type.declaration.children.map(renderTypePropertyRow)}</tbody>
-          </table>
-        ) : null}
+        <CommentTextBlock comment={comment} />
+        {type.declaration.children && renderTypeDeclarationTable(type.declaration)}
         {type.declaration.signatures
           ? type.declaration.signatures.map(({ parameters }: TypeSignaturesData) => (
               <div key={`type-definition-signature-${name}`}>
@@ -100,22 +115,76 @@ const renderType = ({ name, comment, type }: TypeGeneralData): JSX.Element | und
           : null}
       </div>
     );
-  } else if (type.types && type.type === 'union') {
-    // Literal Types
-    const validTypes = type.types.filter((t: TypeValueData) => t.type === 'literal');
-    if (validTypes.length) {
+  } else if (type.types && ['union', 'intersection'].includes(type.type)) {
+    const literalTypes = type.types.filter((t: TypeDefinitionData) =>
+      ['literal', 'intrinsic', 'reference', 'tuple'].includes(t.type)
+    );
+    const propTypes = type.types.filter((t: TypeDefinitionData) => t.type === 'reflection');
+    if (propTypes.length) {
+      return (
+        <div key={`prop-type-definition-${name}`}>
+          <H3Code>
+            <InlineCode>{name}</InlineCode>
+          </H3Code>
+          {type.type === 'intersection' ? (
+            <P>
+              <InlineCode>
+                {type.types.filter(type => type.type === 'reference').map(resolveTypeName)}
+              </InlineCode>{' '}
+              extended by:
+            </P>
+          ) : null}
+          <CommentTextBlock comment={comment} />
+          {propTypes.map(
+            propType =>
+              propType?.declaration?.children && renderTypeDeclarationTable(propType.declaration)
+          )}
+        </div>
+      );
+    } else if (literalTypes.length) {
       return (
         <div key={`type-definition-${name}`}>
           <H3Code>
             <InlineCode>{name}</InlineCode>
           </H3Code>
-          <ReactMarkdown renderers={renderers}>
-            {defineLiteralType(validTypes) +
-              `Acceptable values are: ${validTypes.map(decorateValue).join(', ')}.`}
-          </ReactMarkdown>
+          <CommentTextBlock comment={comment} />
+          <P>
+            {defineLiteralType(literalTypes)}
+            Acceptable values are:{' '}
+            {literalTypes.map((lt, index) => (
+              <span key={`${name}-literal-type-${index}`}>
+                <InlineCode>{resolveTypeName(lt)}</InlineCode>
+                {index + 1 !== literalTypes.length ? ', ' : '.'}
+              </span>
+            ))}
+          </P>
         </div>
       );
     }
+  } else if ((type.name === 'Record' && type.typeArguments) || type.type === 'reference') {
+    return (
+      <div key={`record-definition-${name}`}>
+        <H3Code>
+          <InlineCode>{name}</InlineCode>
+        </H3Code>
+        <UL>
+          <LI>
+            <InlineCode>{resolveTypeName(type)}</InlineCode>
+          </LI>
+        </UL>
+        <CommentTextBlock comment={comment} />
+      </div>
+    );
+  } else if (type.type === 'intrinsic') {
+    return (
+      <div key={`generic-type-definition-${name}`}>
+        <H3Code>
+          <InlineCode>{name}</InlineCode>
+        </H3Code>
+        <CommentTextBlock comment={comment} />
+        <ReactMarkdown renderers={mdRenderers}>{'__Type:__ `' + type.name + '`'}</ReactMarkdown>
+      </div>
+    );
   }
   return undefined;
 };

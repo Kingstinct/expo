@@ -8,6 +8,21 @@
 
 ### 🐛 Bug fixes
 
+### 💡 Others
+
+- Migrated from `@unimodules/core` to `expo-modules-core`. ([#13757](https://github.com/expo/expo/pull/13757) by [@tsapeta](https://github.com/tsapeta))
+
+## 9.2.0 — 2021-06-16
+
+### 🎉 New features
+
+- Added `createTask` (Android) flag for `WebBrowser`. ([#12462](https://github.com/expo/expo/pull/12462) by [@Ackuq](https://github.com/Ackuq))
+- Added custom types definitions for argument and result of `maybeCompleteAuthSession` method. ([#13189](https://github.com/expo/expo/pull/13189) by [@Simek](https://github.com/Simek))
+
+### 🐛 Bug fixes
+
+- Enable kotlin in all modules. ([#12716](https://github.com/expo/expo/pull/12716) by [@wschurman](https://github.com/wschurman))
+
 ## 9.1.0 — 2021-03-10
 
 ### 🎉 New features

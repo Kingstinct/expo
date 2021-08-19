@@ -9,20 +9,23 @@ on:
   schedule:
     - cron: '20 5 * * 2,4,6'
   pull_request:
-    branches: [master]
     paths:
       - .github/workflows/ad-hoc-client-shell-app-ios.yml
       - .ruby-version
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: macos-10.15
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Switch to Xcode 12.1
-        run: sudo xcode-select --switch /Applications/Xcode_12.1.app
+      - name: Switch to Xcode 12.5.1
+        run: sudo xcode-select --switch /Applications/Xcode_12.5.1.app
       - name: Get cache key of git lfs files
         id: git-lfs
         run: echo "::set-output name=sha256::$(git lfs ls-files | openssl dgst -sha256)"
@@ -88,5 +91,5 @@ jobs:
         with:
           channel: '#platform-ios'
           status: ${{ job.status }}
-          fields: job,commit,ref,eventName,author,took
+          fields: job,message,ref,eventName,author,took
           author_name: Ad-hoc Client Shell App (iOS)

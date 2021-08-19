@@ -1,10 +1,12 @@
-import { UnavailabilityError } from '@unimodules/core';
-import { Platform } from 'react-native';
 import {
   PermissionResponse,
   PermissionStatus,
   PermissionExpiration,
-} from 'unimodules-permissions-interface';
+  PermissionHookOptions,
+  UnavailabilityError,
+  createPermissionHook,
+} from 'expo-modules-core';
+import { Platform } from 'react-native';
 
 import ExponentFacebook from './ExponentFacebook';
 import {
@@ -18,9 +20,31 @@ export {
   FacebookLoginResult,
   FacebookOptions,
   FacebookAuthenticationCredential,
+  FacebookInitializationOptions,
   PermissionResponse,
   PermissionStatus,
   PermissionExpiration,
+  PermissionHookOptions,
+};
+
+type Params = { [key: string]: string | number };
+
+/**
+ * Info about a user to increase chances of matching a Facebook user.
+ * See https://developers.facebook.com/docs/app-events/advanced-matching for
+ * more info about the expected format of each field.
+ */
+export type UserData = {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: 'm' | 'f';
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
 };
 
 const androidPermissionsResponse: PermissionResponse = {
@@ -30,6 +54,13 @@ const androidPermissionsResponse: PermissionResponse = {
   status: PermissionStatus.GRANTED,
 };
 
+/**
+ * Asks for permissions to use data for tracking the user or the device.
+ *
+ * > iOS: it requires the NSUserTrackingUsageDescription message added to the info.plist.
+ *
+ * @returns A promise that resolves to an object of type [PermissionResponse](#permissionresponse).
+ */
 export async function requestPermissionsAsync(): Promise<PermissionResponse> {
   if (Platform.OS === 'android') {
     return Promise.resolve(androidPermissionsResponse);
@@ -41,6 +72,13 @@ export async function requestPermissionsAsync(): Promise<PermissionResponse> {
   return await ExponentFacebook.requestPermissionsAsync();
 }
 
+/**
+ * Checks application's permissions for using data for tracking the user or the device.
+ *
+ * >iOS: it requires the NSUserTrackingUsageDescription message added to the info.plist.
+ *
+ * @returns A promise that resolves to an object of type [PermissionResponse](#permissionresponse).
+ */
 export async function getPermissionsAsync(): Promise<PermissionResponse> {
   if (Platform.OS === 'android') {
     return Promise.resolve(androidPermissionsResponse);
@@ -52,6 +90,28 @@ export async function getPermissionsAsync(): Promise<PermissionResponse> {
   return await ExponentFacebook.getPermissionsAsync();
 }
 
+// @needsAudit
+/**
+ * Check or request permissions to use data tracking.
+ * This uses both `requestPermissionsAsync` and `getPermissionsAsync` to interact with the permissions.
+ *
+ * @example
+ * ```ts
+ * const [status, requestPermission] = Facebook.usePermissions();
+ * ```
+ */
+export const usePermissions = createPermissionHook({
+  getMethod: getPermissionsAsync,
+  requestMethod: requestPermissionsAsync,
+});
+
+/**
+ * Prompts the user to log into Facebook and grants your app permission to access their Facebook data. On iOS and Android, if the Facebook app isn't installed then a web view will be used to authenticate.
+ *
+ * @param options A map of options:
+ *  - **permissions (array)** -- An array specifying the permissions to ask for from Facebook for this login. The permissions are strings as specified in the [Facebook API documentation](https://developers.facebook.com/docs/permissions/reference). The default permissions are ['public_profile', 'email'].
+ * @returns If the user or Facebook cancelled the login, returns { type: 'cancel' }. Otherwise, returns { type: 'success' } & [FacebookAuthenticationCredential](#facebookauthenticationcredential).
+ */
 export async function logInWithReadPermissionsAsync(
   options: FacebookOptions = {}
 ): Promise<FacebookLoginResult> {
@@ -218,4 +278,130 @@ function transformNativeFacebookAuthenticationCredential(
     dataAccessExpirationDate: new Date(input.dataAccessExpirationDate),
     expirationDate: new Date(input.expirationDate),
   };
+}
+
+/**
+ * Logs an event with eventName and optional parameters. Supports the optional parameter `valueToSum`,
+ * which when reported, all of the valueToSum properties are summed together. For example, if 10 people purchased
+ * one item and each item cost $10 (and passed in valueToSum) then they would be added together to report $100.
+ * Parameters must be either strings or numbers, otherwise no event will be logged.
+ *
+ * To view and test app events, please visit Facebook's Event Manager- https://www.facebook.com/events_manager2/list/app/
+ */
+export async function logEventAsync(eventName: string, parameters: Params = {}): Promise<void> {
+  if (!ExponentFacebook.logEventAsync) {
+    throw new UnavailabilityError('Facebook', 'logEventAsync');
+  }
+  let valueToSum: number = 0;
+  if (parameters.hasOwnProperty('valueToSum')) {
+    valueToSum = Number(parameters.valueToSum);
+    delete parameters.valueToSum;
+  }
+  return await ExponentFacebook.logEventAsync(eventName, valueToSum, parameters);
+}
+
+/**
+ * Logs a purchase event with the amount, currency code, and optional parameters.
+ * Parameters must be either strings or numbers, otherwise no event will be logged.
+ * See http://en.wikipedia.org/wiki/ISO_4217 for currencyCodes.
+ */
+export async function logPurchaseAsync(
+  purchaseAmount: number,
+  currencyCode: string,
+  parameters?: Params
+): Promise<void> {
+  if (!ExponentFacebook.logPurchaseAsync) {
+    throw new UnavailabilityError('Facebook', 'logPurchaseAsync');
+  }
+  return await ExponentFacebook.logPurchaseAsync(purchaseAmount, currencyCode, parameters);
+}
+
+/**
+ * Logs an app event that tracks that the application was opened via Push Notification. Accepts
+ * a string describing the campaign of the Push Notification.
+ */
+export async function logPushNotificationOpenAsync(campaign: string): Promise<void> {
+  if (!ExponentFacebook.logPushNotificationOpenAsync) {
+    throw new UnavailabilityError('Facebook', 'logPushNotificationOpenAsync');
+  }
+  return await ExponentFacebook.logPushNotificationOpenAsync(campaign);
+}
+
+/**
+ * Explicitly kicks off flushing of events to Facebook.
+ */
+export async function flushAsync(): Promise<void> {
+  if (!ExponentFacebook.flushAsync) {
+    throw new UnavailabilityError('Facebook', 'flushAsync');
+  }
+  return await ExponentFacebook.flushAsync();
+}
+
+/**
+ * Sets a custom user ID to associate with all app events.
+ * The userID is persisted until it is cleared by passing nil.
+ */
+export async function setUserIDAsync(userID: string | null): Promise<void> {
+  if (!ExponentFacebook.setUserIDAsync) {
+    throw new UnavailabilityError('Facebook', 'setUserIDAsync');
+  }
+  return await ExponentFacebook.setUserIDAsync(userID);
+}
+
+/**
+ * Gets the user ID.
+ *
+ * @return A promise fulfilled with the user id or null if not set.
+ */
+export async function getUserIDAsync(): Promise<string | null> {
+  if (!ExponentFacebook.getUserIDAsync) {
+    throw new UnavailabilityError('Facebook', 'getUserIDAsync');
+  }
+  return await ExponentFacebook.getUserIDAsync();
+}
+
+/**
+ * Get an anonymous ID from Facebook.
+ *
+ * @return A promise fulfilled with an anonymous id or null if not set.
+ */
+export async function getAnonymousIDAsync(): Promise<string | null> {
+  if (!ExponentFacebook.getAnonymousIDAsync) {
+    throw new UnavailabilityError('Facebook', 'getAnonymousIDAsync');
+  }
+  return await ExponentFacebook.getAnonymousIDAsync();
+}
+
+/**
+ * Get the advertiser ID from Facebook.
+ *
+ * @return A promise fulfilled with the advertiser id or null if not set.
+ */
+export async function getAdvertiserIDAsync(): Promise<string | null> {
+  if (!ExponentFacebook.getAdvertiserIDAsync) {
+    throw new UnavailabilityError('Facebook', 'getAdvertiserIDAsync');
+  }
+  return await ExponentFacebook.getAdvertiserIDAsync();
+}
+
+/**
+ * **Android only.** Gets the attribution ID from Facebook.
+ *
+ * @return A promise fulfilled with the attribution id or null if not set.
+ */
+export async function getAttributionIDAsync(): Promise<string | null> {
+  if (!ExponentFacebook.getAttributionIDAsync) {
+    throw new UnavailabilityError('Facebook', 'getAttributionIDAsync');
+  }
+  return await ExponentFacebook.getAttributionIDAsync();
+}
+
+/**
+ * Sets additional data about the user to increase the chances of matching a Facebook user.
+ */
+export async function setUserDataAsync(userData: UserData): Promise<void> {
+  if (!ExponentFacebook.setUserDataAsync) {
+    throw new UnavailabilityError('Facebook', 'setUserDataAsync');
+  }
+  return await ExponentFacebook.setUserDataAsync(userData);
 }

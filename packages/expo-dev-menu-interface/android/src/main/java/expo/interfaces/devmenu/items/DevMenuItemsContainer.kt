@@ -1,14 +1,13 @@
 package expo.interfaces.devmenu.items
 
 import java.util.*
-import kotlin.collections.ArrayList
 
 open class DevMenuItemsContainer : DevMenuDSLItemsContainerInterface {
-  private val items: ArrayList<DevMenuScreenItem> = ArrayList()
+  private val items = mutableListOf<DevMenuScreenItem>()
 
   override fun getRootItems(): List<DevMenuScreenItem> {
-    items.sortedBy { it.importance }
-    return items.toList()
+    items.sortedWith(compareBy { it.importance })
+    return items
   }
 
   override fun getAllItems(): List<DevMenuScreenItem> {
@@ -17,14 +16,14 @@ open class DevMenuItemsContainer : DevMenuDSLItemsContainerInterface {
     items.forEach {
       result.add(it)
 
-      if (it is DevMenuDSLItemsContainerInterface) {
+      if (it is DevMenuItemsContainerInterface) {
         result.addAll(it.getAllItems())
       }
     }
     return result
   }
 
-  override fun addItem(item: DevMenuScreenItem) {
+  private fun addItem(item: DevMenuScreenItem) {
     items.add(item)
   }
 
@@ -37,11 +36,6 @@ open class DevMenuItemsContainer : DevMenuDSLItemsContainerInterface {
 
   override fun selectionList(init: DevMenuSelectionList.() -> Unit) = addItem(DevMenuSelectionList(), init)
 
-  override fun serializeItems() =
-    getRootItems()
-      .map { it.serialize() }
-      .toTypedArray()
-
   private fun <T : DevMenuScreenItem> addItem(item: T, init: T.() -> Unit): T {
     item.init()
     addItem(item)
@@ -49,11 +43,11 @@ open class DevMenuItemsContainer : DevMenuDSLItemsContainerInterface {
   }
 
   companion object {
+    @JvmStatic
     fun export(init: DevMenuDSLItemsContainerInterface.() -> Unit): DevMenuItemsContainer {
       val container = DevMenuItemsContainer()
       container.init()
       return container
     }
-
   }
 }

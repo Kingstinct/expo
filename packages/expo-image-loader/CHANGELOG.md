@@ -8,6 +8,18 @@
 
 ### 🐛 Bug fixes
 
+### 💡 Others
+
+## 2.3.0-alpha.0 — 2021-08-17
+
+_This version does not introduce any user-facing changes._
+
+## 2.2.0 — 2021-06-16
+
+### 🐛 Bug fixes
+
+- Enable kotlin in all modules. ([#12716](https://github.com/expo/expo/pull/12716) by [@wschurman](https://github.com/wschurman))
+
 ## 2.1.1 — 2021-03-23
 
 _This version does not introduce any user-facing changes._

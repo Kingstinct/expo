@@ -1,10 +1,9 @@
-import { Platform } from '@unimodules/core';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { Platform } from 'expo-modules-core';
 import * as Notifications from 'expo-notifications';
 import React from 'react';
 
 import ExpoAPIIcon from '../components/ExpoAPIIcon';
-import { Screens } from '../navigation/ExpoApis';
 import ComponentListScreen from './ComponentListScreen';
 
 try {
@@ -17,7 +16,7 @@ try {
   // Branch is not available, do nothing
 }
 
-if (Platform.OS !== 'web')
+if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -25,11 +24,13 @@ if (Platform.OS !== 'web')
       shouldSetBadge: true,
     }),
   });
+}
 
 const screens = [
   'Accelerometer',
   'ActionSheet',
   'Alert',
+  'Amplitude',
   'AppAuth',
   'Appearance',
   'AppleAuthentication',
@@ -49,6 +50,7 @@ const screens = [
   'Device',
   'DocumentPicker',
   'FaceDetector',
+  'FacebookAppEvents',
   'FacebookLogin',
   'FileSystem',
   'FirebaseRecaptcha',
@@ -87,6 +89,7 @@ const screens = [
   'StoreReview',
   'TaskManager',
   'TextToSpeech',
+  'TrackingTransparency',
   'ViewShot',
   'WebBrowser',
 ];
@@ -99,7 +102,8 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export const ScreenItems = screens.map(name => ({
   name,
   route: `/apis/${name.toLowerCase()}`,
-  isAvailable: !!Screens[name],
+  // isAvailable: !!Screens[name],
+  isAvailable: true,
 }));
 
 export default function ExpoApisScreen() {

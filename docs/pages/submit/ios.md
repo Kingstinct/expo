@@ -11,7 +11,7 @@ A paid developer account is required to submit an app &mdash; you can create an 
 
 ## 1. Build a standalone app
 
-You'll need a built native app binary. You can either use the [EAS Build](introduction.md) service or do it on your own.
+You'll need a native app binary signed for store submission. You can either use the [EAS Build](introduction.md) service or do it on your own. You will also need to have EAS CLI installed and authenticated with your Expo account: `npm install -g eas-cli & eas login`.
 
 ## 2. Start the submission
 
@@ -40,7 +40,7 @@ The command will perform the following steps:
 - Ask for which binary to submit. You can select one of the following:
 
   - The latest successful iOS build for the project on EAS servers
-  - Specific build ID. The ID can be found on the [builds dashboard](https://expo.io/builds?type=eas)
+  - Specific build ID. The ID can be found on the [builds dashboard](https://expo.dev/builds?type=eas)
   - Path to an `.ipa` archive on your local filesystem
   - URL to the app archive
 

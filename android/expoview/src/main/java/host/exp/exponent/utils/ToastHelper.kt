@@ -4,7 +4,7 @@ import android.app.Application
 import android.os.Build
 import android.view.Gravity
 import android.widget.Toast
-import host.exp.exponent.ExponentManifest
+import expo.modules.updates.manifest.ManifestFactory
 import host.exp.exponent.di.NativeModuleDepsProvider
 import org.json.JSONObject
 import javax.inject.Inject
@@ -13,20 +13,25 @@ import javax.inject.Inject
 
 object ToastHelper {
   @Inject
-  var applicationContext: Application? = null
+  lateinit var applicationContext: Application
 
   init {
     NativeModuleDepsProvider.getInstance().inject(ToastHelper::class.java, this)
   }
 
-  fun functionMayNotWorkOnAndroidRWarning(featureName: String, manifest: JSONObject?) {
+  fun functionMayNotWorkOnAndroidRWarning(featureName: String, manifestJson: JSONObject?) {
     try {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        if (!ExponentManifest.isDebugModeEnabled(manifest)) {
+        if (manifestJson == null) {
           return
         }
 
-        applicationContext?.let {
+        val manifest = ManifestFactory.getRawManifestFromJson(manifestJson)
+        if (!manifest.isDevelopmentMode()) {
+          return
+        }
+
+        applicationContext.let {
           val message = "$featureName may not work in Expo Go when you're using Android R.\nSee https://expo.fyi/android-r"
           Toast
             .makeText(it, message, Toast.LENGTH_LONG)

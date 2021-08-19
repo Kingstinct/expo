@@ -1,6 +1,6 @@
 import { computeNextBackoffInterval } from '@ide/backoff';
-import { CodedError, Platform, UnavailabilityError } from '@unimodules/core';
 import * as Application from 'expo-application';
+import { CodedError, Platform, UnavailabilityError } from 'expo-modules-core';
 
 import ServerRegistrationModule from '../ServerRegistrationModule';
 import { DevicePushToken } from '../Tokens.types';
@@ -14,7 +14,7 @@ export async function updateDevicePushTokenAsync(signal: AbortSignal, token: Dev
       getDeviceIdAsync(),
     ]);
     const body = {
-      deviceId,
+      deviceId: deviceId.toLowerCase(),
       development,
       deviceToken: token.data,
       appId: Application.applicationId,

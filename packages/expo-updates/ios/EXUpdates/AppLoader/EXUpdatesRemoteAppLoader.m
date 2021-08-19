@@ -3,7 +3,7 @@
 #import <EXUpdates/EXUpdatesRemoteAppLoader.h>
 #import <EXUpdates/EXUpdatesCrypto.h>
 #import <EXUpdates/EXUpdatesFileDownloader.h>
-#import <UMCore/UMUtilities.h>
+#import <ExpoModulesCore/EXUtilities.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -33,15 +33,17 @@ static NSString * const EXUpdatesRemoteAppLoaderErrorDomain = @"EXUpdatesRemoteA
 
 - (void)loadUpdateFromUrl:(NSURL *)url
                onManifest:(EXUpdatesAppLoaderManifestBlock)manifestBlock
+                    asset:(EXUpdatesAppLoaderAssetBlock)assetBlock
                   success:(EXUpdatesAppLoaderSuccessBlock)success
                     error:(EXUpdatesAppLoaderErrorBlock)error
 {
   self.manifestBlock = manifestBlock;
+  self.assetBlock = assetBlock;
   self.errorBlock = error;
 
-  UM_WEAKIFY(self)
+  EX_WEAKIFY(self)
   self.successBlock = ^(EXUpdatesUpdate * _Nullable update) {
-    UM_STRONGIFY(self)
+    EX_STRONGIFY(self)
     // even if update is nil (meaning we didn't load a new update),
     // we want to persist the header data from _remoteUpdate
     if (self->_remoteUpdate) {

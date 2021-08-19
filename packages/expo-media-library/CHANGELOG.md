@@ -6,7 +6,29 @@
 
 ### 🎉 New features
 
+- Added `isAvailableAsync` method ([#13418](https://github.com/expo/expo/pull/13418) by [@danielmark0116](https://github.com/danielmark0116))
+- Add `usePermissions` hook from modules factory. ([#13862](https://github.com/expo/expo/pull/13862) by [@bycedric](https://github.com/bycedric))
+
 ### 🐛 Bug fixes
+
+### 💡 Others
+
+- Migrated from `@unimodules/core` to `expo-modules-core`. ([#13755](https://github.com/expo/expo/pull/13755) by [@tsapeta](https://github.com/tsapeta))
+- Added `AlbumType` and `MediaSubtype` types, added missing `orientation` key to the `Asset` type. ([#13936](https://github.com/expo/expo/pull/13936) by [@Simek](https://github.com/Simek))
+
+## 12.1.0 — 2021-06-16
+
+### 🐛 Bug fixes
+
+- Enable kotlin in all modules. ([#12716](https://github.com/expo/expo/pull/12716) by [@wschurman](https://github.com/wschurman))
+
+### 💡 Others
+
+- Migrated from `unimodules-file-system-interface` and `unimodules-permissions-interface` to `expo-modules-core`. ([#12961](https://github.com/expo/expo/pull/12961) by [@tsapeta](https://github.com/tsapeta))
+
+## 12.0.2 — 2021-04-13
+
+_This version does not introduce any user-facing changes._
 
 ## 12.0.1 — 2021-03-31
 

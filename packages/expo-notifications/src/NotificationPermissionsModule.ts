@@ -1,5 +1,4 @@
-import { Platform } from '@unimodules/core';
-import { PermissionStatus } from 'unimodules-permissions-interface';
+import { PermissionStatus, Platform } from 'expo-modules-core';
 
 import {
   NativeNotificationPermissionsRequest,

@@ -9,31 +9,46 @@ import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
+import androidx.core.content.ContextCompat.getSystemService
 import com.facebook.react.ReactInstanceManager
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.ReactContext
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import expo.interfaces.devmenu.DevMenuDelegateInterface
-import expo.interfaces.devmenu.DevMenuExpoApiClientInterface
 import expo.interfaces.devmenu.DevMenuExtensionInterface
 import expo.interfaces.devmenu.DevMenuExtensionSettingsInterface
 import expo.interfaces.devmenu.DevMenuManagerInterface
 import expo.interfaces.devmenu.DevMenuSettingsInterface
-import expo.interfaces.devmenu.items.DevMenuAction
+import expo.interfaces.devmenu.expoapi.DevMenuExpoApiClientInterface
+import expo.interfaces.devmenu.items.DevMenuCallableProvider
+import expo.interfaces.devmenu.items.DevMenuDataSourceInterface
+import expo.interfaces.devmenu.items.DevMenuDataSourceItem
+import expo.interfaces.devmenu.items.DevMenuExportedAction
+import expo.interfaces.devmenu.items.DevMenuExportedCallable
+import expo.interfaces.devmenu.items.DevMenuExportedFunction
 import expo.interfaces.devmenu.items.DevMenuItemsContainerInterface
 import expo.interfaces.devmenu.items.DevMenuScreen
 import expo.interfaces.devmenu.items.DevMenuScreenItem
 import expo.interfaces.devmenu.items.KeyCommand
 import expo.interfaces.devmenu.items.getItemsOfType
 import expo.modules.devmenu.api.DevMenuExpoApiClient
+import expo.modules.devmenu.api.DevMenuMetroClient
 import expo.modules.devmenu.detectors.ShakeDetector
 import expo.modules.devmenu.detectors.ThreeFingerLongPressDetector
 import expo.modules.devmenu.modules.DevMenuSettings
+import expo.modules.devmenu.react.DevMenuPackagerCommandHandlersSwapper
+import expo.modules.devmenu.tests.DevMenuDisabledTestInterceptor
+import expo.modules.devmenu.tests.DevMenuTestInterceptor
+import expo.modules.devmenu.websockets.DevMenuCommandHandlersProvider
 import java.lang.ref.WeakReference
 
 object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
+  val metroClient: DevMenuMetroClient by lazy { DevMenuMetroClient() }
+
   private var shakeDetector: ShakeDetector? = null
   private var threeFingerLongPressDetector: ThreeFingerLongPressDetector? = null
   private var session: DevMenuSession? = null
@@ -45,6 +60,7 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
   private var currentReactInstanceManager: WeakReference<ReactInstanceManager?> = WeakReference(null)
   private var currentScreenName: String? = null
   private val expoApiClient = DevMenuExpoApiClient()
+  var testInterceptor: DevMenuTestInterceptor = DevMenuDisabledTestInterceptor()
 
   //region helpers
 
@@ -79,6 +95,18 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
         }
     }
 
+  private val cachedDevMenuDataSources by KeyValueCachedProperty<ReactInstanceManager, List<DevMenuDataSourceInterface>> {
+    delegateExtensions
+      .map { it.devMenuDataSources(extensionSettings) ?: emptyList() }
+      .flatten()
+  }
+
+  private val dataSources: List<DevMenuDataSourceInterface>
+    get() {
+      val delegateBridge = delegate?.reactInstanceManager() ?: return emptyList()
+      return cachedDevMenuDataSources[delegateBridge]
+    }
+
   private val cachedDevMenuScreens by KeyValueCachedProperty<ReactInstanceManager, List<DevMenuScreen>> {
     delegateExtensions
       .map { it.devMenuScreens(extensionSettings) ?: emptyList() }
@@ -109,17 +137,21 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
         .flatten()
         .sortedBy { -it.importance }
 
-  private fun getActions(): List<DevMenuAction> {
+  private fun getCallable(): List<DevMenuExportedCallable> {
     if (currentScreenName == null) {
       return delegateMenuItemsContainers
         .map {
-          it.getItemsOfType<DevMenuAction>()
+          it
+            .getItemsOfType<DevMenuCallableProvider>()
+            .mapNotNull { provider -> provider.registerCallable() }
         }
         .flatten()
     }
 
     val screen = delegateScreens.find { it.screenName == currentScreenName } ?: return emptyList()
-    return screen.getItemsOfType()
+    return screen
+      .getItemsOfType<DevMenuCallableProvider>()
+      .mapNotNull { it.registerCallable() }
   }
 
   //endregion
@@ -132,12 +164,28 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
       devMenuHost = DevMenuHost(application)
       UiThreadUtil.runOnUiThread {
         devMenuHost.reactInstanceManager.createReactContextInBackground()
+
+        // Hermes inspector will use latest executed script for Chrome DevTools Protocol.
+        // It will be EXDevMenuApp.android.js in our case.
+        // To let Hermes aware target bundle, we try to reload here as a workaround solution.
+        // @see <a href="https://github.com/facebook/react-native/blob/0.63-stable/ReactCommon/hermes/inspector/Inspector.cpp#L231>code here</a>
+        currentReactInstanceManager.get()?.devSupportManager?.handleReloadJS()
       }
     }
   }
 
   private fun setUpReactInstanceManager(reactInstanceManager: ReactInstanceManager) {
     currentReactInstanceManager = WeakReference(reactInstanceManager)
+
+    val handlers = DevMenuCommandHandlersProvider(this, reactInstanceManager)
+      .createCommandHandlers()
+
+    DevMenuPackagerCommandHandlersSwapper()
+      .swapPackagerCommandHandlers(
+        reactInstanceManager,
+        handlers
+      )
+
     if (reactInstanceManager.currentReactContext == null) {
       reactInstanceManager.addReactInstanceEventListener(object : ReactInstanceManager.ReactInstanceEventListener {
         override fun onReactContextInitialized(context: ReactContext) {
@@ -161,19 +209,20 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
     Log.i(DEV_MENU_TAG, "Delegate's context was loaded.")
 
     maybeInitDevMenuHost(reactContext.currentActivity?.application
-      ?: reactContext.applicationContext as Application)
+        ?: reactContext.applicationContext as Application)
     maybeStartDetectors(devMenuHost.getContext())
 
-    settings = if (reactContext.hasNativeModule(DevMenuSettings::class.java)) {
-      reactContext.getNativeModule(DevMenuSettings::class.java)
-    } else {
-      DevMenuDefaultSettings()
-    }.also {
-      shouldLaunchDevMenuOnStart = it.showsAtLaunch || !it.isOnboardingFinished
-      if (shouldLaunchDevMenuOnStart) {
-        reactContext.addLifecycleEventListener(this)
-      }
-    }
+    settings = testInterceptor.overrideSettings()
+        ?: if (reactContext.hasNativeModule(DevMenuSettings::class.java)) {
+          reactContext.getNativeModule(DevMenuSettings::class.java)!!
+        } else {
+          DevMenuDefaultSettings()
+        }.also {
+          shouldLaunchDevMenuOnStart = it.showsAtLaunch || !it.isOnboardingFinished
+          if (shouldLaunchDevMenuOnStart) {
+            reactContext.addLifecycleEventListener(this)
+          }
+        }
   }
 
   //endregion
@@ -280,6 +329,15 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
   }
 
   override fun onKeyEvent(keyCode: Int, event: KeyEvent): Boolean {
+    val imm = delegateActivity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+    // The keyboard is active. We don't want to handle events that should go to text inputs.
+    // RN uses onKeyUp to handle all events connected with dev options. We need to do the same to override them.
+    // However, this event is also triggered when input is edited. A better way to handle that case
+    // is use onKeyDown event. However, it doesn't work well with key commands and we can't override RN implementation in that approach.
+    if (imm?.isAcceptingText != false) {
+      return false
+    }
+
     if (keyCode == KeyEvent.KEYCODE_MENU) {
       delegateActivity?.let { openMenu(it) }
       return true
@@ -293,10 +351,14 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
       code = keyCode,
       withShift = event.modifiers and KeyEvent.META_SHIFT_MASK > 0
     )
-    return getActions()
+    return getCallable()
+      .filterIsInstance<DevMenuExportedAction>()
       .find { it.keyCommand == keyCommand }
       ?.run {
-        action()
+        if (isAvailable()) {
+          action()
+          closeMenu()
+        }
         true
       } ?: false
   }
@@ -315,10 +377,21 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
     setDelegate(DevMenuDefaultDelegate(reactNativeHost))
   }
 
-  override fun dispatchAction(actionId: String) {
-    getActions()
-      .find { it.actionId == actionId }
-      ?.run { action() }
+  override fun dispatchCallable(actionId: String, args: ReadableMap?) {
+    getCallable()
+      .find { it.id == actionId }
+      ?.run {
+        when (this) {
+          is DevMenuExportedAction -> {
+            if (args != null) {
+              Log.e("DevMenu", "Action $actionId was called with arguments.")
+            }
+
+            call()
+          }
+          is DevMenuExportedFunction -> call(args)
+        }
+      }
   }
 
   override fun sendEventToDelegateBridge(eventName: String, eventData: Any?) {
@@ -329,6 +402,12 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
 
   override fun isInitialized(): Boolean {
     return delegate !== null
+  }
+
+  override suspend fun fetchDataSource(id: String): List<DevMenuDataSourceItem> {
+    return dataSources
+      .find { it.id == id }
+      ?.run { fetchData() } ?: emptyList()
   }
 
   override fun serializedItems(): List<Bundle> = delegateRootMenuItems.map { it.serialize() }
@@ -356,4 +435,3 @@ object DevMenuManager : DevMenuManagerInterface, LifecycleEventListener {
 
   //endregion
 }
-

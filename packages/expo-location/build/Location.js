@@ -1,5 +1,4 @@
-import { Platform } from '@unimodules/core';
-import { PermissionStatus } from 'unimodules-permissions-interface';
+import { PermissionStatus, createPermissionHook, Platform, } from 'expo-modules-core';
 import ExpoLocation from './ExpoLocation';
 import { LocationAccuracy, LocationActivityType, LocationGeofencingEventType, LocationGeofencingRegionState, } from './Location.types';
 import { LocationEventEmitter } from './LocationEventEmitter';
@@ -104,18 +103,18 @@ export async function reverseGeocodeAsync(location, options) {
 }
 /**
  * Gets the current state of location permissions.
- * @deprecated Use `getForegroundPermissions` or `getBackgroundPermissions` instead.
+ * @deprecated Use `getForegroundPermissionsAsync()` or `getBackgroundPermissionsAsync()` instead.
  */
 export async function getPermissionsAsync() {
-    console.warn(`"getPermissionsAsync" is now deprecated. Please, use "getForegroundPermissions" or "getBackgroundPermissions" instead.`);
+    console.warn(`"getPermissionsAsync()" is now deprecated. Please use "getForegroundPermissionsAsync()" or "getBackgroundPermissionsAsync()" instead.`);
     return await ExpoLocation.getPermissionsAsync();
 }
 /**
  * Requests the user to grant location permissions.
- * @deprecated Use `requestForegroundPermissionsAsync` or `requestBackgroundPermissionsAsync` instead.
+ * @deprecated Use `requestForegroundPermissionsAsync()` or `requestBackgroundPermissionsAsync()` instead.
  */
 export async function requestPermissionsAsync() {
-    console.warn(`"requestPermissionsAsync" is now deprecated. Please, use "requestForegroundPermissionsAsync" or "requestBackgroundPermissionsAsync" instead.`);
+    console.warn(`"requestPermissionsAsync()" is now deprecated. Please use "requestForegroundPermissionsAsync()" or "requestBackgroundPermissionsAsync()" instead.`);
     return await ExpoLocation.requestPermissionsAsync();
 }
 /**
@@ -130,6 +129,20 @@ export async function getForegroundPermissionsAsync() {
 export async function requestForegroundPermissionsAsync() {
     return await ExpoLocation.requestForegroundPermissionsAsync();
 }
+// @needsAudit
+/**
+ * Check or request permissions for the foreground location.
+ * This uses both `requestForegroundPermissionsAsync` and `getForegroundPermissionsAsync` to interact with the permissions.
+ *
+ * @example
+ * ```ts
+ * const [status, requestPermission] = Location.useForegroundPermissions();
+ * ```
+ */
+export const useForegroundPermissions = createPermissionHook({
+    getMethod: getForegroundPermissionsAsync,
+    requestMethod: requestForegroundPermissionsAsync,
+});
 /**
  * Gets the current state of background location permissions.
  */
@@ -142,6 +155,20 @@ export async function getBackgroundPermissionsAsync() {
 export async function requestBackgroundPermissionsAsync() {
     return await ExpoLocation.requestBackgroundPermissionsAsync();
 }
+// @needsAudit
+/**
+ * Check or request permissions for the foreground location.
+ * This uses both `requestBackgroundPermissionsAsync` and `getBackgroundPermissionsAsync` to interact with the permissions.
+ *
+ * @example
+ * ```ts
+ * const [status, requestPermission] = Location.useBackgroundPermissions();
+ * ```
+ */
+export const useBackgroundPermissions = createPermissionHook({
+    getMethod: getBackgroundPermissionsAsync,
+    requestMethod: requestBackgroundPermissionsAsync,
+});
 // --- Location service
 /**
  * Returns `true` if the device has location services enabled or `false` otherwise.

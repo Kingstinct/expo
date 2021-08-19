@@ -2,11 +2,12 @@ package host.exp.exponent.notifications.managers;
 
 import android.content.Context;
 
-import org.unimodules.core.interfaces.Function;
+import expo.modules.core.interfaces.Function;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import host.exp.exponent.kernel.ExperienceKey;
 import host.exp.exponent.notifications.schedulers.Scheduler;
 
 public class SchedulersManagerProxy implements SchedulersManager {
@@ -36,13 +37,13 @@ public class SchedulersManagerProxy implements SchedulersManager {
   }
 
   @Override
-  public void removeAll(String experienceId) {
-    mSingleThreadExecutor.execute(()-> mSchedulersManager.removeAll(experienceId));
+  public void removeAll(ExperienceKey experienceKey) {
+    mSingleThreadExecutor.execute(()-> mSchedulersManager.removeAll(experienceKey));
   }
 
   @Override
-  public void cancelAlreadyScheduled(String experienceId) {
-    mSingleThreadExecutor.execute(()-> mSchedulersManager.cancelAlreadyScheduled(experienceId));
+  public void cancelAlreadyScheduled(ExperienceKey experienceKey) {
+    mSingleThreadExecutor.execute(()-> mSchedulersManager.cancelAlreadyScheduled(experienceKey));
   }
 
   @Override

@@ -89,7 +89,7 @@ The typical flow for browser-based authentication in mobile apps is as follows:
 
 ### It makes redirect URL allowlists easier to manage for development and working in teams
 
-Additionally, `AuthSession` **simplifies setting up authorized redirect URLs** by using an Expo service that sits between you and your authentication provider ([read Security considerations for caveats](#security-considerations)). This is particularly valuable with Expo because your app can live at various URLs. In development, you can have a tunnel URL, a lan URL, and a localhost URL. The tunnel URL on your machine for the same app will be different from a co-worker's machine. When you publish your app, that will be another URL that you need to allowlist. If you have multiple environments that you publish to, each of those will also need to be allowlisted. `AuthSession` gets around this by only having you allowlist one URL with your authentication provider: `https://auth.expo.io/@your-username/your-app-slug`. When authentication is successful, your authentication provider will redirect to that Expo Auth URL, and then the Expo Auth service will redirect back to your appplication. If the URL that the auth service is redirecting back to does not match the published URL for the app or the standalone app scheme (eg: `exp://expo.io/@your-username/your-app-slug`, or `yourscheme://`), then it will show a warning page before asking the user to sign in. This means that in development you will see this warning page when you sign in, a small price to pay for the convenience.
+Additionally, `AuthSession` **simplifies setting up authorized redirect URLs** by using an Expo service that sits between you and your authentication provider ([read Security considerations for caveats](#security-considerations)). This is particularly valuable with Expo because your app can live at various URLs. In development, you can have a tunnel URL, a lan URL, and a localhost URL. The tunnel URL on your machine for the same app will be different from a co-worker's machine. When you publish your app, that will be another URL that you need to allowlist. If you have multiple environments that you publish to, each of those will also need to be allowlisted. `AuthSession` gets around this by only having you allowlist one URL with your authentication provider: `https://auth.expo.io/@your-username/your-app-slug`. When authentication is successful, your authentication provider will redirect to that Expo Auth URL, and then the Expo Auth service will redirect back to your application. If the URL that the auth service is redirecting back to does not match the published URL for the app or the standalone app scheme (eg: `exp://expo.dev/@your-username/your-app-slug`, or `yourscheme://`), then it will show a warning page before asking the user to sign in. This means that in development you will see this warning page when you sign in, a small price to pay for the convenience.
 
 How does this work? When you open an authentication session with `AuthSession`, it first visits `https://auth.expo.io/@your-username/your-app-slug/start` and passes in the `authUrl` and `returnUrl` (the URL to redirect back to your application) in the query parameters. The Expo Auth service saves away the `returnUrl` (and if it is not a published URL or your registered custom theme, shows a warning page) and then sends the user off to the `authUrl`. When the authentication provider redirects back to `https://auth.expo.io/@your-username/your-app-slug` on success, the Expo Auth services redirects back to the `returnUrl` that was provided on initiating the authentication flow.
 
@@ -116,7 +116,7 @@ const [request, response, promptAsync] = useAuthRequest({ ... }, { ... });
 Load an authorization request for a code. Returns a loaded request, a response, and a prompt method.
 When the prompt method completes then the response will be fulfilled.
 
-> 🚨 In order to close the popup window on web, you need to invoke `WebBrowser.maybeCompleteAuthSession()`. See the [Identity example](../../../guides/authentication.md#identity-4) for more info.
+> 🚨 In order to close the popup window on web, you need to invoke `WebBrowser.maybeCompleteAuthSession()`. See the [Identity example](../../../guides/authentication.md#identityserver-4) for more info.
 
 If an Implicit grant flow was used, you can pass the `response.params` to `TokenResponse.fromQueryParams()` to get a `TokenResponse` instance which you can use to easily refresh the token.
 
@@ -154,7 +154,7 @@ Given an OpenID Connect issuer URL, this will fetch and return the [`DiscoveryDo
 Create a redirect url for the current platform and environment. You need to manually define the redirect that will be used in a bare workflow React Native app, or an Expo standalone app, this is because it cannot be inferred automatically.
 
 - **Web:** Generates a path based on the current `window.location`. For production web apps, you should hard code the URL as well.
-- **Managed, and Custom workflow:** Uses the `scheme` property of your `app.config.js` or `app.json`.
+- **Managed workflow:** Uses the `scheme` property of your `app.config.js` or `app.json`.
   - **Proxy:** Uses auth.expo.io as the base URL for the path. This only works in Expo Go and standalone environments.
 - **Bare workflow:** Will fallback to using the `native` option for bare workflow React Native apps.
 
@@ -230,7 +230,7 @@ Initiate an authentication session with the given options. Only one `AuthSession
 
   - **authUrl (_string_)** -- **Required**. The URL that points to the sign in page that you would like to open the user to.
 
-  - **returnUrl (_string_)** -- The URL to return to the application. In managed apps, it's optional (defaults to `${Constants.linkingUrl}expo-auth-session`, for example, `exp://expo.io/@yourname/your-app-slug+expo-auth-session`). However, in the bare app, it's required - `AuthSession` needs to know where to wait for the response. Hence, this method will throw an exception, if you don't provide `returnUrl`.
+  - **returnUrl (_string_)** -- The URL to return to the application. In managed apps, it's optional (defaults to `${Constants.linkingUrl}expo-auth-session`, for example, `exp://expo.dev/@yourname/your-app-slug+expo-auth-session`). However, in the bare app, it's required - `AuthSession` needs to know where to wait for the response. Hence, this method will throw an exception, if you don't provide `returnUrl`.
 
   - **showInRecents (_optional_) (_boolean_)** -- (_Android only_) a boolean determining whether browsed website should be shown as separate entry in Android recents/multitasking view. Default: `false`
 
@@ -515,8 +515,8 @@ An extension of the [`AuthRequestConfig`][#authrequestconfig] for use with the b
 | selectAccount          | `?boolean` | Used in favor of `prompt: Prompt.SelectAccount` to switch accounts                    |
 | expoClientId           | `?string`  | Proxy client ID for use in Expo Go on iOS and Android.                                |
 | webClientId            | `?string`  | Web client ID for use in the browser (web apps).                                      |
-| iosClientId            | `?string`  | iOS native client ID for use in standalone, bare-workflow, and custom clients.        |
-| androidClientId        | `?string`  | Android native client ID for use in standalone, bare-workflow, and custom clients.    |
+| iosClientId            | `?string`  | iOS native client ID for use in standalone, bare workflow.                            |
+| androidClientId        | `?string`  | Android native client ID for use in standalone, bare workflow.                        |
 | shouldAutoExchangeCode | `?string`  | Should the hook automatically exchange the response code for an authentication token. |
 
 ## Providers

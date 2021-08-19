@@ -4,9 +4,48 @@
 
 ### 🛠 Breaking changes
 
+- Deprecate `getPermissionsAsync` and `requestPermissionsAsync` methods, use specific permission requesters. ([#13855](https://github.com/expo/expo/pull/13855) by [@bycedric](https://github.com/bycedric))
+
 ### 🎉 New features
 
+- Add `useCameraPermissions` and `useMicrophonePermissions` hooks from modules factory. ([#13855](https://github.com/expo/expo/pull/13855) by [@bycedric](https://github.com/bycedric))
+
 ### 🐛 Bug fixes
+
+- Update video codec validation to properly reject an invalid codec option. ([#13341](https://github.com/expo/expo/pull/13341) by [@ajsmth](https://github.com/ajsmth))
+- Add `get/requestMicrophonePermissionsAsync()` and `get/requestCameraPermissionsAsync()` methods to named exports. ([#13621](https://github.com/expo/expo/pull/13621) by [@ajsmth](https://github.com/ajsmth))
+- Fix regression in video quality option of recordAsync() ([#13659](https://github.com/expo/expo/pull/13659) by [@ajsmth](https://github.com/ajsmth))
+- Update permission validation to check for only camera permissions in `initWithModuleRegistry()` ([#13690](https://github.com/expo/expo/pull/13690) by [@ajsmth](https://github.com/ajsmth))
+
+### 💡 Others
+
+- Migrated from `@unimodules/core` to `expo-modules-core`. ([#13750](https://github.com/expo/expo/pull/13750) by [@tsapeta](https://github.com/tsapeta))
+
+## 11.1.1 — 2021-06-16
+
+_This version does not introduce any user-facing changes._
+
+## 11.1.0 — 2021-06-07
+
+### 🎉 New features
+
+- On iOS added new `codec` parameter in `recordAsync()` method and new method `getAvailableVideoCodecsAsync()` that queries the device for available video codecs. ([#12772](https://github.com/expo/expo/pull/12772) by [@ajsmth](https://github.com/ajsmth))
+- Added new `requestCameraPermissionsAsync()`, `requestMicrophonePermissionsAsync()`, `getCameraPermissionsAsync()` and `getMicrophonePermissionsAsync()` methods which gives more fine-grained control over requested permissions. ([#12860](https://github.com/expo/expo/pull/12772) by [@ajsmth](https://github.com/ajsmth))
+
+### 💡 Others
+
+- Migrated interfaces from their own packages to `expo-modules-core`. ([#12868](https://github.com/expo/expo/pull/12868), [#12912](https://github.com/expo/expo/pull/12912), [#12918](https://github.com/expo/expo/pull/12918) by [@tsapeta](https://github.com/tsapeta))
+
+## 11.0.3 — 2021-05-03
+
+### 🐛 Bug fixes
+
+- Enable kotlin in all modules. ([#12716](https://github.com/expo/expo/pull/12716) by [@wschurman](https://github.com/wschurman))
+- Add `unimodules-permissions-interface` dependency. ([#12739](https://github.com/expo/expo/pull/12739) by [@ajsmth](https://github.com/ajsmth))
+
+## 11.0.2 — 2021-04-13
+
+_This version does not introduce any user-facing changes._
 
 ## 11.0.1 — 2021-04-01
 

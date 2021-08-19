@@ -6,7 +6,29 @@
 
 ### 🎉 New features
 
+- Add BarCodeScanner.usePermissions hook from modules factory. ([#13852](https://github.com/expo/expo/pull/13852) by [@bycedric](https://github.com/bycedric))
+
 ### 🐛 Bug fixes
+
+### 💡 Others
+
+- Migrated from `@unimodules/core` to `expo-modules-core`. ([#13757](https://github.com/expo/expo/pull/13757) by [@tsapeta](https://github.com/tsapeta))
+- Migrated Android codebase from Java to Kotlin. ([#13914](https://github.com/expo/expo/pull/13914) by [@m1st4ke](https://github.com/m1st4ke))
+
+## 10.2.0 — 2021-06-16
+
+### 🐛 Bug fixes
+
+- Enable kotlin in all modules. ([#12716](https://github.com/expo/expo/pull/12716) by [@wschurman](https://github.com/wschurman))
+- On iOS removed the requirement for the presence of `NSMicrophoneUsageDescription` key in `Info.plist` ([#12860](https://github.com/expo/expo/pull/12772) by [@ajsmth](https://github.com/ajsmth))
+
+### 💡 Others
+
+- Migrated interfaces from their own packages to `expo-modules-core`. ([#12912](https://github.com/expo/expo/pull/12912) by [@tsapeta](https://github.com/tsapeta))
+
+## 10.1.2 — 2021-04-13
+
+_This version does not introduce any user-facing changes._
 
 ## 10.1.1 — 2021-03-31
 

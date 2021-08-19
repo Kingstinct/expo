@@ -54,10 +54,12 @@ fun fetchGraphQL(url: Uri, query: String, authHeader: Pair<String, String>? = nu
     .url(url.toString())
     .method(
       "POST",
+      @Suppress("DEPRECATION_ERROR")
       RequestBody.create(MediaType.parse("application/json"), "{\"query\": \"${
         query
           .trimIndent()
           .replace("\n", "\\n")
+          .replace("\"", "\\\"")
       }\"}")
     )
     .addHeader("Content-Type", "application/json")

@@ -1,6 +1,6 @@
 #import <React/RCTImageSource.h>
 #import <React/RCTImageView.h>
-#import <UMCore/UMDefines.h>
+#import <ExpoModulesCore/EXDefines.h>
 
 #import "EXKernel.h"
 #import "EXManagedAppSplashScreenConfiguration.h"
@@ -18,7 +18,7 @@
 
 @implementation EXManagedAppSplashScreenViewProvider
 
-- (instancetype)initWithManifest:(NSDictionary *)manifest
+- (instancetype)initWithManifest:(EXUpdatesRawManifest *)manifest
 {
   if (self = [super init]) {
     _configuration = [EXManagedAppSplashScreenConfigurationBuilder parseManifest:manifest];
@@ -26,7 +26,7 @@
   return self;
 }
 
-- (void)updateSplashScreenViewWithManifest:(NSDictionary *)manifest
+- (void)updateSplashScreenViewWithManifest:(EXUpdatesRawManifest *)manifest
 {
   EXManagedAppSplashScreenConfiguration *previousConfiguration = _configuration;
   _configuration = [EXManagedAppSplashScreenConfigurationBuilder parseManifest:manifest];
@@ -45,9 +45,9 @@
 
 - (void)configureSplashScreenView:(UIView *)splashScreenView previousConfiguration:(EXManagedAppSplashScreenConfiguration *)previousConfiguration
 {
-  UM_WEAKIFY(self);
+  EX_WEAKIFY(self);
   dispatch_async(dispatch_get_main_queue(), ^{
-    UM_ENSURE_STRONGIFY(self);
+    EX_ENSURE_STRONGIFY(self);
     splashScreenView.backgroundColor = self.configuration.backgroundColor;
     
     if (self.configuration.imageUrl) {
