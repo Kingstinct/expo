@@ -9,9 +9,12 @@ import expo.modules.adapters.react.views.SimpleViewManagerAdapter;
 import expo.modules.adapters.react.views.ViewGroupManagerAdapter;
 import expo.modules.core.ModuleRegistry;
 import expo.modules.core.interfaces.InternalModule;
+import expo.modules.core.interfaces.Package;
+import expo.modules.kotlin.KotlinInteropModuleRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * An adapter over {@link ModuleRegistry}, compatible with React (implementing {@link ReactPackage}).
@@ -21,9 +24,10 @@ import java.util.List;
 public class ModuleRegistryAdapter implements ReactPackage {
   protected ReactModuleRegistryProvider mModuleRegistryProvider;
   protected ReactAdapterPackage mReactAdapterPackage = new ReactAdapterPackage();
+  private NativeModulesProxy mModulesProxy;
 
-  public ModuleRegistryAdapter() {
-    mModuleRegistryProvider = new ReactModuleRegistryProvider(ExpoModulesPackageListDelegate.getPackageList(), null);
+  public ModuleRegistryAdapter(List<Package> packageList) {
+    mModuleRegistryProvider = new ReactModuleRegistryProvider(packageList, null);
   }
 
   public ModuleRegistryAdapter(ReactModuleRegistryProvider moduleRegistryProvider) {
@@ -44,7 +48,8 @@ public class ModuleRegistryAdapter implements ReactPackage {
   protected List<NativeModule> getNativeModulesFromModuleRegistry(ReactApplicationContext reactContext, ModuleRegistry moduleRegistry) {
     List<NativeModule> nativeModulesList = new ArrayList<>(2);
 
-    nativeModulesList.add(new NativeModulesProxy(reactContext, moduleRegistry));
+    mModulesProxy = new NativeModulesProxy(reactContext, moduleRegistry);
+    nativeModulesList.add(mModulesProxy);
 
     // Add listener that will notify expo.modules.core.ModuleRegistry when all modules are ready
     nativeModulesList.add(new ModuleRegistryReadyNotifier(moduleRegistry));
@@ -72,6 +77,12 @@ public class ModuleRegistryAdapter implements ReactPackage {
           break;
       }
     }
+
+    // We assume that `createNativeModules` was called first.
+    NativeModulesProxy modulesProxy = Objects.requireNonNull(mModulesProxy);
+    KotlinInteropModuleRegistry kotlinInteropModuleRegistry = modulesProxy.getKotlinInteropModuleRegistry();
+    viewManagerList.addAll(kotlinInteropModuleRegistry.exportViewManagers());
+
     return viewManagerList;
   }
 }

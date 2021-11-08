@@ -1,7 +1,9 @@
+import UIKit
+
 /**
  Specialized class for the view prop. Specifies the prop name and its setter.
  */
-public class ConcreteViewProp<ViewType: UIView, PropType>: AnyViewProp {
+public final class ConcreteViewProp<ViewType: UIView, PropType>: AnyViewProp {
   public typealias SetterType = (ViewType, PropType) -> Void
 
   public let name: String
