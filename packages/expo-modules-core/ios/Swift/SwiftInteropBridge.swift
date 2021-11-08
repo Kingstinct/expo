@@ -2,7 +2,7 @@
 import Foundation
 
 @objc
-public class SwiftInteropBridge: NSObject {
+public final class SwiftInteropBridge: NSObject {
   let appContext: AppContext
 
   var registry: ModuleRegistry {
@@ -40,14 +40,20 @@ public class SwiftInteropBridge: NSObject {
   }
 
   @objc
+  public func callMethodSync(_ methodName: String,
+                             onModule moduleName: String,
+                             withArgs args: [Any]) -> Any? {
+    return registry
+      .get(moduleHolderForName: moduleName)?
+      .callSync(method: methodName, args: args)
+  }
+
+  @objc
   public func exportedMethodNames() -> [String: [[String: Any]]] {
     var constants = [String: [[String: Any]]]()
 
     for holder in registry {
-      var index = -1
-
       constants[holder.name] = holder.definition.methods.map({ (methodName, method) in
-        index += 1
         return [
           "name": methodName,
           "argumentsCount": method.argumentsCount,
@@ -84,5 +90,28 @@ public class SwiftInteropBridge: NSObject {
         return nil
       }
     }
+  }
+
+  // MARK: - Events
+
+  /**
+   Returns an array of event names supported by all Swift modules.
+   */
+  @objc
+  public func getSupportedEvents() -> [String] {
+    return registry.reduce(into: [String]()) { events, holder in
+      events.append(contentsOf: holder.definition.eventNames)
+    }
+  }
+
+  /**
+   Modifies listeners count for module with given name. Depending on the listeners count,
+   `onStartObserving` and `onStopObserving` are called.
+   */
+  @objc
+  public func modifyEventListenersCount(_ moduleName: String, count: Int) {
+    registry
+      .get(moduleHolderForName: moduleName)?
+      .modifyListenersCount(count)
   }
 }

@@ -79,6 +79,7 @@ const screens = [
   'Random',
   'Recording',
   'SMS',
+  'NavigationBar',
   'SafeAreaContext',
   'ScreenOrientation',
   'SecureStore',
@@ -87,6 +88,7 @@ const screens = [
   'Sharing',
   'StatusBar',
   'StoreReview',
+  'SystemUI',
   'TaskManager',
   'TextToSpeech',
   'TrackingTransparency',
@@ -96,10 +98,9 @@ const screens = [
 
 if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
   screens.push('InAppPurchases');
-  screens.push('Payments');
 }
 
-export const ScreenItems = screens.map(name => ({
+export const ScreenItems = screens.map((name) => ({
   name,
   route: `/apis/${name.toLowerCase()}`,
   // isAvailable: !!Screens[name],
